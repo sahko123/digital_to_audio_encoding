@@ -20,10 +20,9 @@ def decode_to_iq_array(symbol_array, modulation_table, distance_threshold):
         for symbol_index in range(symbol_array.size):
             for iq_pair in modulation_table:
                 symbol = symbol_array[symbol_index]
-                iq_distance_to = np.sqrt( ((symbol[0] - iq_pair[0]) ** 2) + ((symbol[0] - iq_pair[0]) ** 2) )
+                iq_distance_to = np.sqrt( ((symbol[0] - iq_pair[0]) ** 2) + ((symbol[1] - iq_pair[1]) ** 2) )
                 if iq_distance_to < distance_threshold:
                     data_array[symbol_index] = np.array(iq_pair)
-                    break
             if symbol_index % 1000 == 0: # Used to slow down the progress bar because its slow as hell
                     bar.next()
     return data_array

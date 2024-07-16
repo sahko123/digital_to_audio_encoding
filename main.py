@@ -101,7 +101,7 @@ output_data_averaged_q_array = signal_processing.average_symbols(output_data_q_v
 output_data_normalised_i_array = signal_processing.normalise_signal_range(output_data_averaged_i_array, -1, 1) # Normalise I array
 output_data_normalised_q_array = signal_processing.normalise_signal_range(output_data_averaged_q_array, -1, 1) # Normalise Q array
 output_data_averaged_iq_array = decoding.merge_i_and_q_arrays(output_data_normalised_i_array, output_data_normalised_q_array) # Merge I and Q array to IQ array
-output_data_iq_array = decoding.decode_to_iq_array(output_data_averaged_iq_array, encoding.QAM16_TABLE, encoding.QAM16_DISTANCE_THRESHOLD) # IQ Array to Symbol Array
+output_data_iq_array = decoding.decode_to_iq_array(output_data_averaged_iq_array, encoding.QAM16_TABLE, 0.1) # IQ Array to Symbol Array
 # Symbol Array to BitArray
 
 del output_data_decode_i_array, output_data_decode_q_array, output_data_averaged_i_array, output_data_averaged_q_array
