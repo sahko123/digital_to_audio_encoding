@@ -33,6 +33,7 @@ def vectorised_data(data_array, samples_per_data):
     return data_vector
 
 def low_pass_filter(signal_to_filter, cuttoff_hz, sample_rate = 192e3, gain = 1):
+    print("Applying low pass filter...")
     tic = time.time()
     num_taps = 101 # it helps to use an odd number of taps (god knows why but its probably simple)
     h = signal.firwin(num_taps, cuttoff_hz, fs=sample_rate) # Generate filter taps
@@ -53,7 +54,10 @@ def average_symbols_vector(input_signal, samples_per_symbol): #NOTE Vectorises t
     return vectorised_data(average_symbols(input_signal, samples_per_symbol), samples_per_symbol)
 
 def average_symbols(input_signal, samples_per_symbol):
-    output_unvector = np.empty(int(len(input_signal)/samples_per_symbol)) #TODO this can be removed to output just the output data since we know the samples per symbol but is used for visual testing
-    for sample in range(0, int(len(input_signal)/samples_per_symbol)):
-        output_unvector[sample] = np.mean(input_signal[sample*samples_per_symbol:(sample*samples_per_symbol) + (samples_per_symbol)-1])
-    return output_unvector
+    output_average_symbols = np.empty(int(len(input_signal)/samples_per_symbol)) #TODO this can be removed to output just the output data since we know the samples per symbol but is used for visual testing
+    with Bar('Averaging symbols...', max=len(input_signal)/samples_per_symbol/10000, suffix='%(percent)d%%') as bar:
+        for sample in range(0, int(len(input_signal)/samples_per_symbol)):
+            output_average_symbols[sample] = np.mean(input_signal[sample*samples_per_symbol:(sample*samples_per_symbol) + (samples_per_symbol)-1])
+            if sample % 10000 == 0: # Used to slow down the progress bar because its slow as hell
+                bar.next()
+    return output_average_symbols

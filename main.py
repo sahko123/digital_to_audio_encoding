@@ -8,6 +8,7 @@ import signal_processing
 import encoding
 import decoding
 from decimal import *
+import gc
 
 
 
@@ -49,8 +50,6 @@ def eng_format(x, precision=3):
         b = b - b % 3
         return ("%." + str(precision) + "gE%s") % (a,b)
 
-
-
 def iq_plot(i, q, figure_count, dot_size = 5):
     plt.figure(figure_count)
     plt.scatter(i, q, s=dot_size)
@@ -58,72 +57,74 @@ def iq_plot(i, q, figure_count, dot_size = 5):
     figure_count+=1
     #exit()
 
+
 sample_rate = 192e3
 symbol_depth = 4
 
-print("Creating BitArray from file...")
-#test_data = BitArray(filename = '128kbps_joint_stereo.mp3')
-test_data = BitArray(filename = 'test_data')
-print("bit count ", np.array(test_data).size)
-
-symbol_array = encoding.data_bit_to_symbol_array(test_data, symbol_depth)
-print("number of symbols ", symbol_array.size)
-
-iq_array = encoding.data_symbol_to_qam16_iq_array(symbol_array)
-print("number of IQ pairs ", iq_array.size)
-
-i_array, q_array = encoding.seperate_iq_array(iq_array)
-
-
-
 cycles_per_symbol = 4
-carrier_frequency = 10e3
+carrier_frequency = 20e3
+
 samples_per_symbol = int(np.ceil( ( (1/carrier_frequency) / (1/sample_rate) ) * cycles_per_symbol))
-length_time = (i_array.size * samples_per_symbol) / sample_rate
-symbols_per_second = (symbol_depth) / ( cycles_per_symbol/carrier_frequency )
-print("bits per second ", eng_format(symbols_per_second * symbol_depth))
+bits_per_second = ((symbol_depth) / ( cycles_per_symbol/carrier_frequency )) ** 2
+
+# NOTE Conversion of input file to IQ data vectors
+print("Begin Encoding...")
+#input_data_bit_array = BitArray(filename = '128kbps_joint_stereo.mp3')
+input_data_bit_array = BitArray(filename = 'test_data') # File to BitArray
+input_data_symbol_array = encoding.data_bit_to_symbol_array(input_data_bit_array, symbol_depth) # BitArray to Symbol Array
+input_data_iq_array = encoding.data_symbol_to_qam16_iq_array(input_data_symbol_array) # Symbol Array to modulated IQ array
+input_data_i_array, input_data_q_array = encoding.seperate_iq_array(input_data_iq_array) # Split IQ array to I and Q array
+input_vectorised_i_array = signal_processing.vectorised_data(input_data_i_array, samples_per_symbol) # Vectorise I array
+input_vectorised_q_array = signal_processing.vectorised_data(input_data_q_array, samples_per_symbol) # Vectorise Q array
+
+# NOTE Generation of Data encoded waveform
+length_time = (input_data_i_array.size * samples_per_symbol) / sample_rate
+time_samples = signal_processing.time_step_array(length_time, sample_rate)
+time_samples = time_samples[0:(input_vectorised_i_array.size)] # Hack to prevent this from being larger than symbol vector by 1 which happens sometimes for some fucking reason i dont know how to fix it properly and i cant be assed can probably solved with a simple floor or ceiling operation but ( ͡° ͜ʖ ͡°)
+input_data_encoded_wave = signal_processing.IQ_encoded_wave(carrier_frequency, time_samples, input_vectorised_i_array, input_vectorised_q_array)
+
+del input_data_bit_array, input_data_symbol_array, input_data_iq_array, input_data_q_array # NOTE used in an attempt to reduce 24GB ram usage
+gc.collect()
+print("bits per second ", eng_format(bits_per_second))
 print("Sample length", length_time)
 
-vectorised_i_array = signal_processing.vectorised_data(i_array, samples_per_symbol)
-vectorised_q_array = signal_processing.vectorised_data(q_array, samples_per_symbol)
+# NOTE Conversion of data encoded wave to output data
+filter_frequency = 20e3
+local_osc_frequency = 20e3
 
+print("Begin Decoding...")
+output_data_decode_i_array, output_data_decode_q_array = decoding.decode_raw_IQ_wave(local_osc_frequency, time_samples, input_data_encoded_wave) # Modulated signal to I and Q array
+output_data_i_vector = signal_processing.low_pass_filter(output_data_decode_i_array, filter_frequency, gain=1) # Filter I vector
+output_data_q_vector = signal_processing.low_pass_filter(output_data_decode_q_array, filter_frequency, gain=1) # Filter Q vector
+output_data_averaged_i_array = signal_processing.average_symbols(output_data_i_vector, samples_per_symbol) # Retrieve averaged I array NOTE average_symbols_vector will return a vectorised version only really needed for visualisation
+output_data_averaged_q_array = signal_processing.average_symbols(output_data_q_vector, samples_per_symbol) # Retrieve averaged Q array
+output_data_normalised_i_array = signal_processing.normalise_signal_range(output_data_averaged_i_array, -1, 1) # Normalise I array
+output_data_normalised_q_array = signal_processing.normalise_signal_range(output_data_averaged_q_array, -1, 1) # Normalise Q array
+output_data_averaged_iq_array = decoding.merge_i_and_q_arrays(output_data_normalised_i_array, output_data_normalised_q_array) # Merge I and Q array to IQ array
+output_data_iq_array = decoding.decode_to_iq_array(output_data_averaged_iq_array, encoding.QAM16_TABLE, encoding.QAM16_DISTANCE_THRESHOLD) # IQ Array to Symbol Array
+# Symbol Array to BitArray
 
+del output_data_decode_i_array, output_data_decode_q_array, output_data_averaged_i_array, output_data_averaged_q_array
+gc.collect()
 
-time_samples = signal_processing.time_step_array(length_time, sample_rate)
-time_samples = time_samples[0:(vectorised_i_array.size)] # Hack to prevent this from being larger than symbol vector by 1 which happens sometimes for some fucking reason i dont know how to fix it properly and i cant be assed can probably solved with a simple floor or ceiling operation but ( ͡° ͜ʖ ͡°)
+output_data_i_symbol_array, output_data_q_symbol_array = encoding.seperate_iq_array(output_data_iq_array) # Seperated version of output_data_symbol_array data array
 
+# NOTE Plotting schtuff
+viewing_extent = 50000
 
-data_encoded_wave = signal_processing.IQ_encoded_wave(carrier_frequency, time_samples, vectorised_i_array, vectorised_q_array)
-
-time_samples = signal_processing.time_step_array(length_time, sample_rate)
-
-decode_i_array, decode_q_array = decoding.decode_raw_IQ_wave(20e3, time_samples, data_encoded_wave)
-
-filter_frequency = 19e3
-viewing_extent = time_samples.size
-#iq_plot(signal_gen.low_pass_filter(decode_i_array[0:viewing_extent], filter_frequency, gain=5), signal_gen.low_pass_filter(decode_q_array[0:viewing_extent], filter_frequency, gain=5))
-
-processed_i = signal_processing.low_pass_filter(decode_i_array, filter_frequency, gain=1)
-averaged_i = signal_processing.average_symbols(processed_i, samples_per_symbol)
-processed_q = signal_processing.low_pass_filter(decode_q_array, filter_frequency, gain=1)
-averaged_q = signal_processing.average_symbols(processed_q, samples_per_symbol)
-
-averaged_iq_array = decoding.merge_i_and_q_arrays(signal_processing.normalise_signal_range(averaged_i, -1, 1), signal_processing.normalise_signal_range(averaged_q, -1, 1))
-print(averaged_iq_array)
-decoded_iq_array = decoding.bin_data(averaged_iq_array, encoding.QAM16_TABLE, encoding.QAM16_DISTANCE_THRESHOLD)
-print(decoded_iq_array)
-test_result_i_array, test_result_q_array = encoding.seperate_iq_array(decoded_iq_array)
-iq_plot(signal_processing.normalise_signal_range(averaged_i, -1, 1), signal_processing.normalise_signal_range(averaged_q, -1, 1), 1)
-iq_plot(vectorised_i_array, vectorised_q_array, 1)
+iq_plot(output_data_normalised_i_array[0:viewing_extent], output_data_normalised_q_array[0:viewing_extent], 2)
+iq_plot(input_vectorised_i_array[0:viewing_extent], input_vectorised_q_array[0:viewing_extent], 1)
+iq_plot(output_data_i_symbol_array[0:viewing_extent], output_data_q_symbol_array[0:viewing_extent], 1, dot_size=10)
 axs: plt.axes 
 fig, axs = plt.subplots(5, sharex=True)
 #NOTE time_samples[0:viewing_extent],  add this back for when you want time instead of nsample
-axs[0].plot(time_samples[0:viewing_extent],data_encoded_wave[0:viewing_extent])
-axs[1].plot(time_samples[0:viewing_extent],processed_i)
-axs[2].plot(time_samples[0:viewing_extent],averaged_i)
-axs[3].plot(time_samples[0:viewing_extent],test_result_i_array[0:viewing_extent])
-axs[4].plot(time_samples[0:viewing_extent],vectorised_i_array[0:viewing_extent])
-if all(test_result_i_array == vectorised_i_array):
-    print("SUCCESS", test_result_i_array.size)
+axs[0].plot(time_samples[0:viewing_extent],input_data_encoded_wave[0:viewing_extent])
+axs[1].plot(time_samples[0:viewing_extent],output_data_i_vector[0:viewing_extent])
+axs[2].plot(time_samples[0:viewing_extent],signal_processing.vectorised_data(output_data_normalised_i_array[0:viewing_extent], samples_per_symbol)[0:viewing_extent])
+axs[3].plot(time_samples[0:viewing_extent],signal_processing.vectorised_data(output_data_i_symbol_array[0:viewing_extent], samples_per_symbol)[0:viewing_extent])
+axs[4].plot(time_samples[0:viewing_extent],input_vectorised_i_array[0:viewing_extent])
+
+if (output_data_i_symbol_array == input_data_i_array).all():
+    print("SUCCESS", output_data_i_symbol_array.size, " ", input_data_i_array.size)
 plt.show()
 

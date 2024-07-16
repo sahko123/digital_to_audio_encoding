@@ -11,7 +11,7 @@ QAM8_TABLE = [[-0.5, -0.5], [-1, -1], [0.5, -0.5], [1, -1], [-0.5, 0.5], [-1, 1]
 
 QAM16_TABLE = [[-1, 1], [-1/3, 1/3], [1/3, 1], [1, 1/3], [1/3, -1/3], [1, -1], [-1, -1/3], [-1/3, -1],
                [-1, 1/3], [-1/3, 1], [1/3, 1/3], [1, 1], [1, -1/3], [1/3, -1], [-1/3, -1/3], [-1, -1]]
-QAM16_DISTANCE_THRESHOLD = 1/3
+QAM16_DISTANCE_THRESHOLD = (1/3)/2
 
 
 
@@ -19,10 +19,10 @@ def data_bit_to_symbol_array(bit_array, bit_depth):
     print("Splitting Array into bool arrays...")
     split_array = np.array_split(np.array(bit_array), np.array(bit_array).size/bit_depth)
     symbol_array = np.empty(len(split_array), dtype=int)
-    with Bar('Converting bool arrays to symbol arrays...', max=len(split_array)/10000, suffix='%(percent)d%%') as bar:
+    with Bar('Converting bool arrays to symbol arrays...', max=len(split_array)/20000, suffix='%(percent)d%%') as bar:
         for i in range(len(split_array)):
             symbol_array[i] = convert_bool_array_to_uint(split_array[i])
-            if i % 10000 == 0: # Used to slow down the progress bar because its slow as hell
+            if i % 20000 == 0: # Used to slow down the progress bar because its slow as hell
                 bar.next()
     return symbol_array
 
