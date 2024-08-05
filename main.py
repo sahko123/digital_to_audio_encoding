@@ -140,16 +140,7 @@ if (output_data_i_symbol_array == input_data_i_array).all():
 if (output_data_q_symbol_array == input_data_q_array).all():
     print("SUCCESS Q Array", output_data_q_symbol_array.size, " ", input_data_q_array.size)
 
-
-#print(input_data_iq_array)
-#print(output_data_iq_array)
-
-print(input_data_integer_array)
-print(output_data_integer_array)
-print(type(input_data_integer_array[0]))
-print(type(output_data_integer_array[0]))
-
-
+print("Compare Binaries")
 print(input_data_bit_array)
 print(output_data_bit_array)
 

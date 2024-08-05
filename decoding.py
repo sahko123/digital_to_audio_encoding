@@ -49,7 +49,8 @@ def qam16_to_data_array(symbol_array):
 def data_symbol_to_bit_array(symbol_array, bit_depth):
     output_bit_array = BitArray()
     for symbol in symbol_array:
-        symbol_bits = Bits(uint=symbol, length=bit_depth)
+        symbol_bits = BitArray(Bits(uint=symbol, length=bit_depth))
+        symbol_bits.reverse()
         output_bit_array.append(symbol_bits)
     return output_bit_array
 
