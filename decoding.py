@@ -1,6 +1,6 @@
 import numpy as np
 import time
-from bitstring import BitArray
+from bitstring import BitArray, Bits
 from progress.bar import Bar
 import encoding
 
@@ -37,5 +37,25 @@ def merge_i_and_q_arrays(i_array, q_array):
                 bar.next()
     return iq_array
 
+def qam16_to_data_array(symbol_array):
+    output_integer_data_array = np.empty(symbol_array.size, dtype=np.int32)
+    with Bar('Converting QAM16 to integer array...', max=len(symbol_array)/1000, suffix='%(percent)d%%') as bar:
+        for symbol_index in range(symbol_array.size):
+            output_integer_data_array[symbol_index] = np.int32(encoding.QAM16_TABLE.index(list(symbol_array[symbol_index])))
+            if symbol_index % 1000 == 0: # Used to slow down the progress bar because its slow as hell
+                    bar.next()
+    return output_integer_data_array
+
 def data_symbol_to_bit_array(symbol_array, bit_depth):
-    return
+    output_bit_array = BitArray()
+    for symbol in symbol_array:
+        symbol_bits = Bits(uint=symbol, length=bit_depth)
+        output_bit_array.append(symbol_bits)
+    return output_bit_array
+
+def bit_array_to_file(bit_array: BitArray, file_path, extension):
+    full_path = file_path + extension
+    output_file = open(full_path, 'wb')
+    BitArray(bit_array).tofile(output_file)
+    return output_file
+

@@ -11,7 +11,7 @@ QAM8_TABLE = [[-0.5, -0.5], [-1, -1], [0.5, -0.5], [1, -1], [-0.5, 0.5], [-1, 1]
 
 QAM16_TABLE = [[-1, 1], [-1/3, 1/3], [1/3, 1], [1, 1/3], [1/3, -1/3], [1, -1], [-1, -1/3], [-1/3, -1],
                [-1, 1/3], [-1/3, 1], [1/3, 1/3], [1, 1], [1, -1/3], [1/3, -1], [-1/3, -1/3], [-1, -1]]
-QAM16_DISTANCE_THRESHOLD = (1/3)/2
+QAM16_DISTANCE_THRESHOLD = 1/3
 
 
 
@@ -48,7 +48,7 @@ def data_symbol_to_qam16_iq_array(symbol_array):
     iq_array = np.empty(len(symbol_array), dtype=object)
     with Bar('Converting symbol array to QAM8 IQ array...', max=len(symbol_array)/10000, suffix='%(percent)d%%') as bar:
         for i in range(len(symbol_array)):
-            iq_array[i] = QAM16_TABLE[symbol_array[i]]
+            iq_array[i] = np.array(QAM16_TABLE[symbol_array[i]])
             if i % 10000 == 0: # Used to slow down the progress bar because its slow as hell
                 bar.next()
     return iq_array
