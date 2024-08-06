@@ -17,8 +17,10 @@ QAM16_DISTANCE_THRESHOLD = 1/3
 
 def data_bit_to_symbol_array(bit_array, bit_depth):
     print("Splitting Array into bool arrays...")
+    print("Bit Array Size: " + str(len(bit_array)))
     split_array = np.array_split(np.array(bit_array), np.array(bit_array).size/bit_depth)
     symbol_array = np.empty(len(split_array), dtype=int)
+    print("Symbol Array Size: " + str(symbol_array.size))
     with Bar('Converting bool arrays to symbol arrays...', max=len(split_array)/20000, suffix='%(percent)d%%') as bar:
         for i in range(len(split_array)):
             symbol_array[i] = convert_bool_array_to_uint(split_array[i])
@@ -46,7 +48,8 @@ def data_symbol_to_qam8_iq_array(symbol_array):
 
 def data_symbol_to_qam16_iq_array(symbol_array):
     iq_array = np.empty(len(symbol_array), dtype=object)
-    with Bar('Converting symbol array to QAM8 IQ array...', max=len(symbol_array)/10000, suffix='%(percent)d%%') as bar:
+    print("Symbol Array Size: " + str(symbol_array.size))
+    with Bar('Converting symbol array to QAM16 IQ array...', max=len(symbol_array)/10000, suffix='%(percent)d%%') as bar:
         for i in range(len(symbol_array)):
             iq_array[i] = np.array(QAM16_TABLE[symbol_array[i]])
             if i % 10000 == 0: # Used to slow down the progress bar because its slow as hell
@@ -55,6 +58,7 @@ def data_symbol_to_qam16_iq_array(symbol_array):
 
 def data_symbol_to_ask4_iq_array(symbol_array):
     iq_array = np.empty(len(symbol_array), dtype=object)
+    print("IQ Array Size: " + str(iq_array.size))
     with Bar('Converting symbol array to ASK4 IQ array...', max=len(symbol_array)/10000, suffix='%(percent)d%%') as bar:
         for i in range(len(symbol_array)):
             iq_array[i] = ASK4_TABLE[symbol_array[i]]

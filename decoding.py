@@ -48,6 +48,7 @@ def qam16_to_data_array(symbol_array):
 
 def data_symbol_to_bit_array(symbol_array, bit_depth):
     output_bit_array = BitArray()
+    print("Converting symbol array to bit array...")
     for symbol in symbol_array:
         symbol_bits = BitArray(Bits(uint=symbol, length=bit_depth))
         symbol_bits.reverse()
@@ -55,6 +56,7 @@ def data_symbol_to_bit_array(symbol_array, bit_depth):
     return output_bit_array
 
 def bit_array_to_file(bit_array: BitArray, file_path, extension):
+    print("Converting bit array to file...")
     full_path = file_path + extension
     output_file = open(full_path, 'wb')
     BitArray(bit_array).tofile(output_file)

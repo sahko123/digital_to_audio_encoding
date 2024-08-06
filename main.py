@@ -77,22 +77,23 @@ bits_per_second = ((symbol_bit_depth) / ( cycles_per_symbol/carrier_frequency ))
 # NOTE Conversion of input file to IQ data vectors
 print("Begin Encoding...")
 input_data_bit_array = BitArray(filename = '128kbps_joint_stereo.mp3')
-input_data_bit_array = BitArray(filename = 'test_data') # File to BitArray
-#input_data_bit_array = input_data_bit_array[0:10000]
+#input_data_bit_array = BitArray(filename = 'test_data') # File to BitArray
+#input_data_bit_array = input_data_bit_array[0:100000]
 input_data_integer_array = encoding.data_bit_to_symbol_array(input_data_bit_array, symbol_bit_depth) # BitArray to Symbol Array
+del input_data_bit_array
 input_data_iq_array = encoding.data_symbol_to_qam16_iq_array(input_data_integer_array) # Symbol Array to modulated IQ array
+del input_data_integer_array
 input_data_i_array, input_data_q_array = encoding.seperate_iq_array(input_data_iq_array) # Split IQ array to I and Q array
+del input_data_iq_array
 input_vectorised_i_array = signal_processing.vectorised_data(input_data_i_array, samples_per_symbol) # Vectorise I array
 input_vectorised_q_array = signal_processing.vectorised_data(input_data_q_array, samples_per_symbol) # Vectorise Q array
-
 # NOTE Generation of Data encoded waveform
 length_time = (input_data_i_array.size * samples_per_symbol) / sample_rate
 time_samples = signal_processing.time_step_array(length_time, sample_rate)
 time_samples = time_samples[0:(input_vectorised_i_array.size)] # Hack to prevent this from being larger than symbol vector by 1 which happens sometimes for some fucking reason i dont know how to fix it properly and i cant be assed can probably solved with a simple floor or ceiling operation but ( ͡° ͜ʖ ͡°)
 input_data_encoded_wave = signal_processing.IQ_encoded_wave(carrier_frequency, time_samples, input_vectorised_i_array, input_vectorised_q_array)
+del input_vectorised_i_array, input_vectorised_q_array
 
-#del input_data_bit_array, input_data_symbol_array, input_data_iq_array # NOTE used in an attempt to reduce 24GB ram usage
-#gc.collect()
 print("bits per second ", eng_format(bits_per_second))
 print("Sample length", length_time)
 print("Sample length in minutes", length_time/60)
@@ -105,46 +106,49 @@ print("Begin Decoding...")
 output_data_decode_i_array, output_data_decode_q_array = decoding.decode_raw_IQ_wave(local_osc_frequency, time_samples, input_data_encoded_wave) # Modulated signal to I and Q array
 output_data_i_vector = signal_processing.low_pass_filter(output_data_decode_i_array, filter_frequency, gain=1) # Filter I vector
 output_data_q_vector = signal_processing.low_pass_filter(output_data_decode_q_array, filter_frequency, gain=1) # Filter Q vector
+del output_data_decode_i_array, output_data_decode_q_array
 output_data_averaged_i_array = signal_processing.average_symbols(output_data_i_vector, samples_per_symbol) # Retrieve averaged I array NOTE average_symbols_vector will return a vectorised version only really needed for visualisation
 output_data_averaged_q_array = signal_processing.average_symbols(output_data_q_vector, samples_per_symbol) # Retrieve averaged Q array
+del output_data_i_vector, output_data_q_vector
 output_data_normalised_i_array = signal_processing.normalise_signal_range(output_data_averaged_i_array, -1, 1) # Normalise I array
 output_data_normalised_q_array = signal_processing.normalise_signal_range(output_data_averaged_q_array, -1, 1) # Normalise Q array
+del output_data_averaged_i_array, output_data_averaged_q_array
 output_data_averaged_iq_array = decoding.merge_i_and_q_arrays(output_data_normalised_i_array, output_data_normalised_q_array) # Merge I and Q array to IQ array
+del output_data_normalised_i_array, output_data_normalised_q_array
 output_data_iq_array = decoding.decode_to_iq_array(output_data_averaged_iq_array, encoding.QAM16_TABLE, encoding.QAM16_DISTANCE_THRESHOLD) # IQ Array to Symbol Array
+del output_data_averaged_iq_array
 output_data_integer_array = decoding.qam16_to_data_array(output_data_iq_array)
+del output_data_iq_array
 output_data_bit_array = decoding.data_symbol_to_bit_array(output_data_integer_array, bit_depth=symbol_bit_depth)# Symbol Array to BitArray
-output_file = decoding.bit_array_to_file(output_data_bit_array, test_output_directory + os.path.join("\\test_output"), '.txt')
+del output_data_integer_array
+output_file = decoding.bit_array_to_file(output_data_bit_array, test_output_directory + os.path.join("\\test_output"), '.mp3')
+del output_data_bit_array
 output_file.close()
-del output_data_decode_i_array, output_data_decode_q_array, output_data_averaged_i_array, output_data_averaged_q_array
-gc.collect()
 
-output_data_i_symbol_array, output_data_q_symbol_array = encoding.seperate_iq_array(output_data_iq_array) # Seperated version of output_data_symbol_array data array
+#output_data_i_symbol_array, output_data_q_symbol_array = encoding.seperate_iq_array(output_data_iq_array) # Seperated version of output_data_symbol_array data array
 
-# NOTE Plotting schtuff
+# NOTE Viewing extent is used to limit how much of the individual arrays is sent to matplotlib
 viewing_extent = 200000
 
-iq_plot(output_data_normalised_i_array[0:viewing_extent], output_data_normalised_q_array[0:viewing_extent], 1)
-iq_plot(input_vectorised_i_array[0:viewing_extent], input_vectorised_q_array[0:viewing_extent], 1)
-iq_plot(output_data_i_symbol_array[0:viewing_extent], output_data_q_symbol_array[0:viewing_extent], 1, dot_size=2)
-axs: plt.axes 
-fig, axs = plt.subplots(5, sharex=True)
-#NOTE time_samples[0:viewing_extent],  add this back for when you want time instead of nsample
-axs[0].plot(time_samples[0:viewing_extent], input_data_encoded_wave[0:viewing_extent])
-axs[1].plot(time_samples[0:viewing_extent], signal_processing.vectorised_data(output_data_i_symbol_array[0:viewing_extent], samples_per_symbol)[0:viewing_extent])
-axs[2].plot(time_samples[0:viewing_extent], input_vectorised_i_array[0:viewing_extent])
-axs[3].plot(time_samples[0:viewing_extent], signal_processing.vectorised_data(output_data_q_symbol_array[0:viewing_extent], samples_per_symbol)[0:viewing_extent])
-axs[4].plot(time_samples[0:viewing_extent], input_vectorised_q_array[0:viewing_extent])
+#iq_plot(output_data_normalised_i_array[0:viewing_extent], output_data_normalised_q_array[0:viewing_extent], 1)
+#iq_plot(input_vectorised_i_array[0:viewing_extent], input_vectorised_q_array[0:viewing_extent], 1)
+#iq_plot(output_data_i_symbol_array[0:viewing_extent], output_data_q_symbol_array[0:viewing_extent], 1, dot_size=2)
+#axs: plt.axes 
+#fig, axs = plt.subplots(5, sharex=True)
+##NOTE time_samples[0:viewing_extent],  add this back for when you want time instead of nsample
+#axs[0].plot(time_samples[0:viewing_extent], input_data_encoded_wave[0:viewing_extent])
+#axs[1].plot(time_samples[0:viewing_extent], signal_processing.vectorised_data(output_data_i_symbol_array[0:viewing_extent], samples_per_symbol)[0:viewing_extent])
+#axs[2].plot(time_samples[0:viewing_extent], input_vectorised_i_array[0:viewing_extent])
+#axs[3].plot(time_samples[0:viewing_extent], signal_processing.vectorised_data(output_data_q_symbol_array[0:viewing_extent], samples_per_symbol)[0:viewing_extent])
+#axs[4].plot(time_samples[0:viewing_extent], input_vectorised_q_array[0:viewing_extent])
 
-if (output_data_i_symbol_array == input_data_i_array).all():
-    print("SUCCESS I Array", output_data_i_symbol_array.size, " ", input_data_i_array.size)
-if (output_data_q_symbol_array == input_data_q_array).all():
-    print("SUCCESS Q Array", output_data_q_symbol_array.size, " ", input_data_q_array.size)
+#if (output_data_i_symbol_array == input_data_i_array).all():
+#    print("SUCCESS I Array", output_data_i_symbol_array.size, " ", input_data_i_array.size)
+#if (output_data_q_symbol_array == input_data_q_array).all():
+#    print("SUCCESS Q Array", output_data_q_symbol_array.size, " ", input_data_q_array.size)
 
-print("Compare Binaries")
-print(input_data_bit_array)
-print(output_data_bit_array)
+#print("Compare Binaries")
+#print(input_data_bit_array) # Wont work due to garbage collection
+#print(output_data_bit_array)
 
-
-
-
-plt.show()
+#plt.show()

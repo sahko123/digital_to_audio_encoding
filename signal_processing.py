@@ -22,6 +22,7 @@ def vectorised_data(data_array, samples_per_data):
     data_vector = np.empty(len(data_array) * samples_per_data)
     print("Generating Vectorised Data")
     tic = time.time()
+    print("Data Array Size: " + str(len(data_array)))
     with Bar('Vectorising Data...', max=len(data_vector)/5000, suffix='%(percent)d%%') as bar:
         for n in range(0, len(data_array)):
             for i in range(0, samples_per_data):
