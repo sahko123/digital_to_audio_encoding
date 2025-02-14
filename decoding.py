@@ -24,7 +24,7 @@ def decode_to_iq_array(symbol_array, modulation_table, distance_threshold):
                 if iq_distance_to < distance_threshold:
                     data_array[symbol_index] = np.array(iq_pair)
             if symbol_index % 1000 == 0: # Used to slow down the progress bar because its slow as hell
-                    bar.next()
+                bar.next()
     return data_array
     
 def merge_i_and_q_arrays(i_array, q_array):
@@ -43,7 +43,7 @@ def qam16_to_data_array(symbol_array):
         for symbol_index in range(symbol_array.size):
             output_integer_data_array[symbol_index] = np.int32(encoding.QAM16_TABLE.index(list(symbol_array[symbol_index])))
             if symbol_index % 1000 == 0: # Used to slow down the progress bar because its slow as hell
-                    bar.next()
+                bar.next()
     return output_integer_data_array
 
 def data_symbol_to_bit_array(symbol_array, bit_depth):

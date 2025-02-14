@@ -3,26 +3,27 @@ import time
 from scipy import signal
 from progress.bar import Bar
 import matplotlib.pyplot as plt
+from helpers import print_gate
 
 def time_step_array(length, sample_rate):
     time_samples = np.arange(0, length, 1 / sample_rate)
     return time_samples
 
 def IQ_encoded_wave(carrier_frequency, time_samples, vectorised_i_array, vectorised_q_array):
-    print("Generating IQ Data Encoded Wave...")
+    print_gate("Generating IQ Data Encoded Wave...")
     tic = time.time()
     sin_cos_coefficient = 2 * np.pi * carrier_frequency * time_samples
     output_wave = ( vectorised_i_array * np.cos(sin_cos_coefficient) ) + ( vectorised_q_array * np.sin(sin_cos_coefficient) )
     toc = time.time()
-    print("Time taken for IQ Data Encoded Wave in s: ", toc - tic)
+    print_gate("Time taken for IQ Data Encoded Wave in s: " + str(toc - tic))
     return output_wave
 
 def vectorised_data(data_array, samples_per_data):
-    print("Initialising Vectorised Data Array")
-    data_vector = np.empty(len(data_array) * samples_per_data)
-    print("Generating Vectorised Data")
+    print_gate("Initialising Vectorised Data Array")
+    data_vector = np.empty(len(data_array) * samples_per_data, dtype=np.float32)
+    print_gate("Generating Vectorised Data")
     tic = time.time()
-    print("Data Array Size: " + str(len(data_array)))
+    print_gate("Data Array Size: " + str(len(data_array)))
     with Bar('Vectorising Data...', max=len(data_vector)/5000, suffix='%(percent)d%%') as bar:
         for n in range(0, len(data_array)):
             for i in range(0, samples_per_data):
@@ -30,17 +31,17 @@ def vectorised_data(data_array, samples_per_data):
                 if n % 5000 == 0: # Used to slow down the progress bar because its slow as hell
                     bar.next()
     toc = time.time()
-    print("Time taken for data vectorisation in s: ", toc - tic)
+    print_gate("Time taken for data vectorisation in s: " + str(toc - tic))
     return data_vector
 
 def low_pass_filter(signal_to_filter, cuttoff_hz, sample_rate = 192e3, gain = 1):
-    print("Applying low pass filter...")
+    print_gate("Applying low pass filter...")
     tic = time.time()
     num_taps = 101 # it helps to use an odd number of taps (god knows why but its probably simple)
     h = signal.firwin(num_taps, cuttoff_hz, fs=sample_rate) # Generate filter taps
     output_signal = np.convolve(h, signal_to_filter, mode='same') # Apply filter
     toc = time.time()
-    print("Time taken for data filtering in s: ", toc - tic)
+    print_gate("Time taken for data filtering in s: " + str(toc - tic))
     return gain * output_signal
 
 def normalise_signal_range(input_signal, min_bound, max_bound): # NOTE Doesnt really work and may not be needed
@@ -62,3 +63,5 @@ def average_symbols(input_signal, samples_per_symbol):
             if sample % 10000 == 0: # Used to slow down the progress bar because its slow as hell
                 bar.next()
     return output_average_symbols
+
+
